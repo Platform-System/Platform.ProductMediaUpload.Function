@@ -93,7 +93,8 @@ public sealed class ProductMediaUploadService
                 BlobName = blobName,
                 ContainerName = containerClient.Name,
                 ContentType = file.ContentType,
-                Size = file.FileSize
+                Size = file.FileSize,
+                AltText = file.AltText
             });
         }
 

@@ -7,4 +7,5 @@ public sealed class UploadProductMediaItemResult
     public string ContainerName { get; init; } = null!;
     public string ContentType { get; init; } = null!;
     public long Size { get; init; }
+    public string AltText { get; init; } = string.Empty;
 }

@@ -1,6 +1,6 @@
 using Grpc.Core;
 using Platform.Catalog.Grpc;
-using Platform.ProductMediaUpload.Function.Enums;
+using Platform.ProductMediaUpload.Function.Models;
 using Platform.ProductMediaUpload.Function.Results;
 
 namespace Platform.ProductMediaUpload.Function.Services;
@@ -46,6 +46,46 @@ public sealed class CatalogAuthorizationClient
         catch (RpcException)
         {
             return ProductMediaUploadAuthorizationResult.Unavailable("Catalog service is unavailable.");
+        }
+    }
+
+    public async Task<ProductMediaSetResult> SetProductMediasAsync(
+        Guid productId,
+        Guid userId,
+        UploadProductMediaResult uploadResult,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var request = new SetProductMediasRequest
+            {
+                ProductId = productId.ToString(),
+                UserId = userId.ToString()
+            };
+
+            foreach (var item in uploadResult.Items)
+            {
+                request.Items.Add(new UploadedFileInfo
+                {
+                    BlobName = item.BlobName,
+                    ContainerName = item.ContainerName,
+                    FileName = item.FileName,
+                    ContentType = item.ContentType,
+                    Size = item.Size,
+                    AltText = item.AltText
+                });
+            }
+
+            var response = await _client.SetProductMediasAsync(request, cancellationToken: cancellationToken);
+
+            if (!response.Status.IsSuccess)
+                return ProductMediaSetResult.Failure(response.Status.Errors.FirstOrDefault() ?? "Unable to save product medias.");
+
+            return ProductMediaSetResult.Success();
+        }
+        catch (RpcException)
+        {
+            return ProductMediaSetResult.Unavailable("Catalog service is unavailable.");
         }
     }
 }

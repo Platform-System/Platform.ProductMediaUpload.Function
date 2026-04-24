@@ -29,12 +29,25 @@ public static class MultipartFileReader
         // Function chỉ lấy những section thực sự là file upload.
         var reader = new MultipartReader(boundary, request.Body);
         var files = new List<MultipartFileData>();
+        string? altText = null;
 
         MultipartSection? section;
         while ((section = await reader.ReadNextSectionAsync(cancellationToken)) is not null)
         {
             if (!ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var disposition))
                 continue;
+
+            if (disposition?.DispositionType == "form-data" && string.IsNullOrWhiteSpace(disposition.FileName.Value))
+            {
+                var fieldName = disposition.Name.Value?.Trim('"');
+                if (string.Equals(fieldName, "altText", StringComparison.OrdinalIgnoreCase))
+                {
+                    using var textReader = new StreamReader(section.Body);
+                    altText = await textReader.ReadToEndAsync(cancellationToken);
+                }
+
+                continue;
+            }
 
             if (disposition?.DispositionType != "form-data" || string.IsNullOrWhiteSpace(disposition.FileName.Value))
                 continue;
@@ -54,6 +67,14 @@ public static class MultipartFileReader
 
         if (files.Count == 0)
             return ([], "At least one file is required.");
+
+        foreach (var file in files)
+        {
+            file.AltText = altText ?? string.Empty;
+        }
+
+        if (string.IsNullOrWhiteSpace(altText))
+            return ([], "Alt text is required.");
 
         return (files, null);
     }

@@ -105,6 +105,23 @@ public sealed class UploadProductMediaFunction
                 authorization.Visibility!.Value,
                 cancellationToken);
 
+            var setMediasResult = await _catalogAuthorizationClient.SetProductMediasAsync(
+                productId,
+                validation.UserId.Value,
+                result,
+                cancellationToken);
+
+            if (!setMediasResult.IsSuccess)
+            {
+                var statusCode = setMediasResult.IsUnavailable
+                    ? HttpStatusCode.ServiceUnavailable
+                    : HttpStatusCode.BadRequest;
+
+                var failed = request.CreateResponse(statusCode);
+                await failed.WriteStringAsync(setMediasResult.Error ?? "Unable to save product medias.", cancellationToken);
+                return failed;
+            }
+
             var okResponse = request.CreateResponse(HttpStatusCode.OK);
             await okResponse.WriteAsJsonAsync(result, cancellationToken);
             return okResponse;
